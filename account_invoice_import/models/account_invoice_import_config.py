@@ -85,7 +85,8 @@ class AccountInvoiceImportConfig(models.Model):
         vals = {
             'invoice_line_method': self.invoice_line_method,
             'account_analytic': self.account_analytic_id or False,
-            }
+            'company': self.company_id,
+        }
         if self.invoice_line_method == '1line_no_product':
             vals['account'] = self.account_id
             vals['taxes'] = self.tax_ids

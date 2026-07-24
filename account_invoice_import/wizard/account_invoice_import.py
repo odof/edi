@@ -284,6 +284,17 @@ class AccountInvoiceImport(models.TransientModel):
                     taxes = bdio._match_taxes(
                         line.get('taxes'), parsed_inv['chatter_msg'])
                     il_vals['invoice_line_tax_ids'] = [(6, 0, taxes.ids)]
+                if not il_vals.get("invoice_line_tax_ids"):
+                    if parsed_inv["type"] in ("out_invoice", "out_refund"):
+                        type_tax_use = "sale"
+                    else:
+                        type_tax_use = "purchase"
+                    taxes = bdio._match_taxes(
+                        line.get("taxes"),
+                        parsed_inv["chatter_msg"],
+                        type_tax_use=type_tax_use
+                    )
+                    il_vals["invoice_line_tax_ids"] = [(6, 0, taxes.ids)]
                 if not il_vals.get('account_id') and il_vals.get('product_id'):
                     product = self.env['product.product'].browse(
                         il_vals['product_id'])
@@ -1082,6 +1093,10 @@ class AccountInvoiceImport(models.TransientModel):
         import_configs = aiico.sudo().search([
             ('partner_id', '=', partner.id),
             ('company_id', '=', company_id)])
+        if not import_configs:
+            import_configs = aiico.sudo().search([
+                ('partner_id', '=', False),
+                ('company_id', '=', company_id)])
         if not import_configs:
             msg = "Missing Invoice Import Configuration "\
                 "for partner '%s' ID %d." % (partner.display_name, partner.id)
