@@ -33,8 +33,8 @@ class AccountInvoiceImport(models.TransientModel):
 
     def prepare_facturx_xpath_dict(self):
         xpath_dict = {
-            'partner': {
-                'vat': [
+            "partner": {
+                "vat": [
                     "//ram:ApplicableHeaderTradeAgreement"
                     "/ram:SellerTradeParty"
                     "/ram:SpecifiedTaxRegistration"
@@ -42,17 +42,17 @@ class AccountInvoiceImport(models.TransientModel):
                     "//ram:ApplicableSupplyChainTradeAgreement"
                     "/ram:SellerTradeParty"
                     "/ram:SpecifiedTaxRegistration"
-                    "/ram:ID[@schemeID='VA']",  # ZUGFeRD
-                    ],
-                'name': [
-                    '//ram:ApplicableHeaderTradeAgreement'
-                    '/ram:SellerTradeParty'
-                    '/ram:Name',  # Factur-X
-                    '//ram:ApplicableSupplyChainTradeAgreement'
-                    '/ram:SellerTradeParty'
-                    '/ram:Name',  # ZUGFeRD
-                    ],
-                'email': [
+                    "/ram:ID[@schemeID='VA']",  # ZUGFeRD 1.x
+                ],
+                "name": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:Name",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:Name",  # ZUGFeRD 1.x
+                ],
+                "email": [
                     "//ram:ApplicableHeaderTradeAgreement"
                     "/ram:SellerTradeParty"
                     "/ram:DefinedTradeContact"
@@ -62,11 +62,77 @@ class AccountInvoiceImport(models.TransientModel):
                     "/ram:SellerTradeParty"
                     "/ram:DefinedTradeContact"
                     "/ram:EmailURIUniversalCommunication"
-                    "/ram:URIID",  # ZUGFeRD
-                    ],
-                },
-            'company': {
-                'vat': [
+                    "/ram:URIID",  # ZUGFeRD 1.x
+                ],
+                "country_code": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:CountryID",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:CountryID",  # ZUGFeRD 1.x
+                ],
+                "zip": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:PostcodeCode",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:PostcodeCode",  # ZUGFeRD 1.x
+                ],
+                "street": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineOne",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineOne",  # ZUGFeRD 1.x
+                ],
+                "street2": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineTwo",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineTwo",  # ZUGFeRD 1.x
+                ],
+                "street3": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineThree",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:LineThree",  # ZUGFeRD 1.x
+                ],
+                "city": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:CityName",  # Factur-X
+                    "//ram:ApplicableSupplyChainTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:PostalTradeAddress"
+                    "/ram:CityName",  # ZUGFeRD 1.x
+                ],
+                "einvoice_address": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:SellerTradeParty"
+                    "/ram:URIUniversalCommunication"
+                    "/ram:URIID[@schemeID='0225']",  # Factur-X
+                ],
+            },
+            "company": {
+                "vat": [
                     "//ram:ApplicableHeaderTradeAgreement"
                     "/ram:BuyerTradeParty"
                     "/ram:SpecifiedTaxRegistration"
@@ -75,19 +141,25 @@ class AccountInvoiceImport(models.TransientModel):
                     "/ram:BuyerTradeParty"
                     "/ram:SpecifiedTaxRegistration"
                     "/ram:ID[@schemeID='VA']",  # ZUGFeRD
-                    ],
-                },
-            'invoice_number': [
-                '//rsm:ExchangedDocument/ram:ID',  # Factur-X
-                '//rsm:HeaderExchangedDocument/ram:ID',  # ZUGFeRD
                 ],
-            'date': [
-                '//rsm:ExchangedDocument'
-                '/ram:IssueDateTime/udt:DateTimeString',  # Factur-X
-                '//rsm:HeaderExchangedDocument'
-                '/ram:IssueDateTime/udt:DateTimeString',  # ZUGFeRD
+                "einvoice_address": [
+                    "//ram:ApplicableHeaderTradeAgreement"
+                    "/ram:BuyerTradeParty"
+                    "/ram:URIUniversalCommunication"
+                    "/ram:URIID[@schemeID='0225']",  # Factur-X
                 ],
-            'date_due': [
+            },
+            "invoice_number": [
+                "//rsm:ExchangedDocument/ram:ID",  # Factur-X
+                "//rsm:HeaderExchangedDocument/ram:ID",  # ZUGFeRD
+            ],
+            "date": [
+                "//rsm:ExchangedDocument"
+                "/ram:IssueDateTime/udt:DateTimeString",  # Factur-X
+                "//rsm:HeaderExchangedDocument"
+                "/ram:IssueDateTime/udt:DateTimeString",  # ZUGFeRD
+            ],
+            "date_due": [
                 "//ram:ApplicableHeaderTradeSettlement"
                 "/ram:SpecifiedTradePaymentTerms"
                 "/ram:DueDateDateTime"
@@ -96,40 +168,40 @@ class AccountInvoiceImport(models.TransientModel):
                 "/ram:SpecifiedTradePaymentTerms"
                 "/ram:DueDateDateTime"
                 "/udt:DateTimeString",  # ZUGFeRD
-                ],
-            'date_start': [
+            ],
+            "date_start": [
                 "//ram:ApplicableHeaderTradeSettlement"
                 "/ram:BillingSpecifiedPeriod"
                 "/ram:StartDateTime/udt:DateTimeString",
                 "//ram:ApplicableSupplyChainTradeSettlement"
                 "/ram:BillingSpecifiedPeriod"
                 "/ram:StartDateTime/udt:DateTimeString",
-                ],
-            'date_end': [
+            ],
+            "date_end": [
                 "//ram:ApplicableHeaderTradeSettlement"
                 "/ram:BillingSpecifiedPeriod"
                 "/ram:EndDateTime/udt:DateTimeString",
                 "//ram:ApplicableSupplyChainTradeSettlement"
                 "/ram:BillingSpecifiedPeriod"
                 "/ram:EndDateTime/udt:DateTimeString",
-                ],
-            'currency': {
-                'iso': [
+            ],
+            "currency": {
+                "iso": [
                     "//ram:ApplicableHeaderTradeSettlement"
                     "/ram:InvoiceCurrencyCode",  # Factur-X
                     "//ram:ApplicableSupplyChainTradeSettlement"
                     "/ram:InvoiceCurrencyCode",  # ZUGFeRD
-                    ],
-                },
-            'amount_total': [
+                ],
+            },
+            "amount_total": [
                 "//ram:ApplicableHeaderTradeSettlement"
                 "/ram:SpecifiedTradeSettlementHeaderMonetarySummation"
                 "/ram:GrandTotalAmount",  # Factur-X
                 "//ram:ApplicableSupplyChainTradeSettlement"
                 "/ram:SpecifiedTradeSettlementMonetarySummation"
                 "/ram:GrandTotalAmount",  # ZUGFeRD
-                ],
-            }
+            ],
+        }
         return xpath_dict
 
     @api.model

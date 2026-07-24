@@ -83,7 +83,7 @@ class AccountInvoice(models.Model):
             email_node = etree.SubElement(
                 trade_contact, ns['ram'] + 'EmailURIUniversalCommunication')
             email_uriid = etree.SubElement(
-                email_node, ns['ram'] + 'URIID', schemeID='SMTP')
+                email_node, ns['ram'] + 'URIID')
             email_uriid.text = partner.email
 
     @api.model
@@ -101,6 +101,32 @@ class AccountInvoice(models.Model):
         self.ensure_one()
         doc_ctx = etree.SubElement(
             root, ns['rsm'] + 'ExchangedDocumentContext')
+        # If an invoice line has no product, we consider it is a service
+        line_types = [
+            line.product_id and line.product_id.type or "service"
+            for line in self.invoice_line_ids
+        ]
+        service_only = all(
+            [ptype == "service" for ptype in line_types]
+        )
+        at_least_one_product = any(
+            [ptype in ("consu", "product") for ptype in line_types]
+        )
+        all_products = all(
+            [ptype in ("consu", "product") for ptype in line_types]
+        )
+        paid = self.state == "paid"
+        if service_only:
+            business_process_type = paid and "S2" or "S1"
+        elif at_least_one_product and all_products:
+            business_process_type = paid and "B2" or "B1"
+        else:
+            business_process_type = paid and "M2" or "M1"
+        bus_ctx_param = etree.SubElement(
+            doc_ctx, ns["ram"] + "BusinessProcessSpecifiedDocumentContextParameter"
+        )
+        bus_ctx_param_id = etree.SubElement(bus_ctx_param, ns["ram"] + "ID")
+        bus_ctx_param_id.text = business_process_type
         # TestIndicator not in factur-X...
         # if self.state not in ('open', 'paid'):
         #    test_indic = etree.SubElement(
@@ -151,6 +177,40 @@ class AccountInvoice(models.Model):
             note = etree.SubElement(header_doc, ns['ram'] + 'IncludedNote')
             content_note = etree.SubElement(note, ns['ram'] + 'Content')
             content_note.text = self.comment
+            subject_code = etree.SubElement(note, ns["ram"] + "SubjectCode")
+            subject_code.text = "AAI"
+        others_included_notes = [
+            {
+                "BT-21": "PMT",
+                "BT-22": u"Indemnité forfaitaire pour frais de recouvrement "
+                u"en cas de retard de paiement : 40 €.",
+            },
+            {
+                "BT-21": "PMD",
+                "BT-22": u"Tout retard de paiement engendre une pénalité "
+                u"exigible à compter de la date d'échéance, "
+                u"calculée sur la base de trois fois le taux d'intérêt légal.",
+            },
+            {
+                "BT-21": "AAB",
+                "BT-22": u"Les réglements reçus avant la date d'échéance "
+                u"ne donneront pas lieu à escompte.",
+            },
+        ]
+        if (
+            hasattr(self, "fr_directory_partner_entity_type")
+            and self.fr_directory_partner_entity_type == "public"
+        ):
+            others_included_notes.append({"BT-21": "ADN", "BT-22": "B2G"})
+        # if self.fr_einvoicing_internal:
+        #     res.append({"BT-21": "BAR", "BT-22": "ARCHIVEONLY"})
+
+        for other_included_notes in others_included_notes:
+            note = etree.SubElement(header_doc, ns["ram"] + "IncludedNote")
+            content_note = etree.SubElement(note, ns["ram"] + "Content")
+            content_note.text = other_included_notes["BT-22"]
+            subject_code = etree.SubElement(note, ns["ram"] + "SubjectCode")
+            subject_code.text = other_included_notes["BT-21"]
 
     @api.model
     def _cii_get_party_identification(self, commercial_partner):
@@ -199,6 +259,19 @@ class AccountInvoice(models.Model):
             self._cii_add_trade_contact_block(
                 self.user_id.partner_id or company.partner_id, seller, ns)
         self._cii_add_address_block(company.partner_id, seller, ns)
+        fr_directory_exists = hasattr(
+            company.partner_id, "default_fr_directory_line_id"
+        )
+        if fr_directory_exists and company.partner_id.default_fr_directory_line_id:
+            seller_dir_line_node = etree.SubElement(
+                seller, ns["ram"] + "URIUniversalCommunication"
+            )
+            dir_line_uriid = etree.SubElement(
+                seller_dir_line_node, ns["ram"] + "URIID", schemeID="0225"
+            )
+            dir_line_uriid.text = (
+                company.partner_id.default_fr_directory_line_id.identifier
+            )
         if company.vat:
             seller_tax_reg = etree.SubElement(
                 seller, ns['ram'] + 'SpecifiedTaxRegistration')
@@ -221,6 +294,14 @@ class AccountInvoice(models.Model):
                 self.partner_id.name):
             self._cii_add_trade_contact_block(self.partner_id, buyer, ns)
         self._cii_add_address_block(self.partner_id, buyer, ns)
+        if fr_directory_exists and self.fr_directory_line_id:
+            buyer_dir_line_node = etree.SubElement(
+                buyer, ns["ram"] + "URIUniversalCommunication"
+            )
+            dir_line_uriid = etree.SubElement(
+                buyer_dir_line_node, ns["ram"] + "URIID", schemeID="0225"
+            )
+            dir_line_uriid.text = self.fr_directory_line_id.identifier
         if self.commercial_partner_id.vat:
             buyer_tax_reg = etree.SubElement(
                 buyer, ns['ram'] + 'SpecifiedTaxRegistration')
@@ -288,15 +369,16 @@ class AccountInvoice(models.Model):
                 payment_means_info.text =\
                     self.payment_mode_id.note or self.payment_mode_id.name
         else:
-            payment_means_code.text = '30'  # use 30 and not 31,
+            payment_means_code.text = '1'  # use 30 and not 31,
             # for wire transfer, according to Factur-X CIUS
             if ns['level'] in PROFILES_EN_UP:
-                payment_means_info.text = _('Wire transfer')
+                payment_means_info.text = _("Instrument not defined")
             logger.warning(
-                'Missing payment mode on invoice ID %d. '
-                'Using 30 (wire transfer) as UNECE code as fallback '
-                'for payment mean',
-                self.id)
+                "Missing payment mode on invoice ID %d. "
+                "Using 1 (Instrument not defined) as UNECE code as fallback "
+                "for payment mean",
+                self.id,
+            )
         if payment_means_code.text in CREDIT_TRF_CODES:
             partner_bank = self.partner_bank_id
             if (
