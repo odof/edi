@@ -898,7 +898,10 @@ class BusinessDocumentImport(models.AbstractModel):
             i = 0
             xmlfiles = {}  # key = filename, value = PDF obj
             for embeddedfile in embeddedfiles[:-1]:
-                mime_res = mimetypes.guess_type(embeddedfile)
+                try:
+                    mime_res = mimetypes.guess_type(embeddedfile)
+                except:
+                    mime_res = False
                 if mime_res and mime_res[0] in ['application/xml', 'text/xml']:
                     xmlfiles[embeddedfile] = embeddedfiles[i+1]
                 i += 1
