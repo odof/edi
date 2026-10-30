@@ -179,38 +179,40 @@ class AccountInvoice(models.Model):
             content_note.text = self.comment
             subject_code = etree.SubElement(note, ns["ram"] + "SubjectCode")
             subject_code.text = "AAI"
-        others_included_notes = [
-            {
-                "BT-21": "PMT",
-                "BT-22": u"Indemnité forfaitaire pour frais de recouvrement "
-                u"en cas de retard de paiement : 40 €.",
-            },
-            {
-                "BT-21": "PMD",
-                "BT-22": u"Tout retard de paiement engendre une pénalité "
-                u"exigible à compter de la date d'échéance, "
-                u"calculée sur la base de trois fois le taux d'intérêt légal.",
-            },
-            {
-                "BT-21": "AAB",
-                "BT-22": u"Les réglements reçus avant la date d'échéance "
-                u"ne donneront pas lieu à escompte.",
-            },
-        ]
-        if (
-            hasattr(self, "fr_directory_partner_entity_type")
-            and self.fr_directory_partner_entity_type == "public"
-        ):
-            others_included_notes.append({"BT-21": "ADN", "BT-22": "B2G"})
-        # if self.fr_einvoicing_internal:
-        #     res.append({"BT-21": "BAR", "BT-22": "ARCHIVEONLY"})
+        # IncludedNote is not part of the MINIMUM profile
+        if ns['level'] != 'minimum':
+            others_included_notes = [
+                {
+                    "BT-21": "PMT",
+                    "BT-22": u"Indemnité forfaitaire pour frais de recouvrement "
+                    u"en cas de retard de paiement : 40 €.",
+                },
+                {
+                    "BT-21": "PMD",
+                    "BT-22": u"Tout retard de paiement engendre une pénalité "
+                    u"exigible à compter de la date d'échéance, "
+                    u"calculée sur la base de trois fois le taux d'intérêt légal.",
+                },
+                {
+                    "BT-21": "AAB",
+                    "BT-22": u"Les réglements reçus avant la date d'échéance "
+                    u"ne donneront pas lieu à escompte.",
+                },
+            ]
+            if (
+                hasattr(self, "fr_directory_partner_entity_type")
+                and self.fr_directory_partner_entity_type == "public"
+            ):
+                others_included_notes.append({"BT-21": "ADN", "BT-22": "B2G"})
+            # if self.fr_einvoicing_internal:
+            #     res.append({"BT-21": "BAR", "BT-22": "ARCHIVEONLY"})
 
-        for other_included_notes in others_included_notes:
-            note = etree.SubElement(header_doc, ns["ram"] + "IncludedNote")
-            content_note = etree.SubElement(note, ns["ram"] + "Content")
-            content_note.text = other_included_notes["BT-22"]
-            subject_code = etree.SubElement(note, ns["ram"] + "SubjectCode")
-            subject_code.text = other_included_notes["BT-21"]
+            for other_included_notes in others_included_notes:
+                note = etree.SubElement(header_doc, ns["ram"] + "IncludedNote")
+                content_note = etree.SubElement(note, ns["ram"] + "Content")
+                content_note.text = other_included_notes["BT-22"]
+                subject_code = etree.SubElement(note, ns["ram"] + "SubjectCode")
+                subject_code.text = other_included_notes["BT-21"]
 
     @api.model
     def _cii_get_party_identification(self, commercial_partner):
